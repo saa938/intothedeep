@@ -41,6 +41,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.teamcode.robot.TurtleRobot;
 
 import java.util.List;
 
@@ -69,7 +70,12 @@ import java.util.List;
 @TeleOp
 public class Limelight extends LinearOpMode {
 
+    private static final int FOCAL_LENGTH = 1320;
+    private static final double WIDTH = 3.5;
+    double left_command;
+    double right_command;
     private Limelight3A limelight;
+    TurtleRobot robot = new TurtleRobot(this);
 
     @Override
     public void runOpMode() throws InterruptedException
@@ -77,6 +83,8 @@ public class Limelight extends LinearOpMode {
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         limelight.setPollRateHz(100);
         telemetry.setMsTransmissionInterval(11);
+
+        robot.init(hardwareMap);
 
         limelight.pipelineSwitch(0);
 
@@ -126,6 +134,34 @@ public class Limelight extends LinearOpMode {
                         telemetry.addData("Y length pixels", cr.getTargetYPixels());
                         telemetry.addData("X Degrees", cr.getTargetXDegrees());
                         telemetry.addData("Y Degrees", cr.getTargetYDegrees());
+                        double distance = FOCAL_LENGTH * WIDTH / cr.getTargetXDegrees();
+                        telemetry.addData("Distance", distance);
+
+                        double Kp = -0.1f;
+                        double min_command = 0.05f;
+
+                        if (gamepad1.a)
+                        {
+                            double heading_error = result.getTx();
+                            double steering_adjust = 0.0f;
+                            if (Math.abs(heading_error) > 1.0)
+                            {
+                                if (heading_error < 0)
+                                {
+                                    steering_adjust = Kp*heading_error + min_command;
+                                }
+                                else
+                                {
+                                    steering_adjust = Kp*heading_error - min_command;
+                                }
+                            }
+                            left_command += steering_adjust;
+                            right_command -= steering_adjust;
+                            robot.leftFront.setPower(left_command);
+                            robot.leftBack.setPower(left_command);
+                            robot.rightFront.setPower(right_command);
+                            robot.rightBack.setPower(right_command);
+                        }
                     }
                 }
             } else {
